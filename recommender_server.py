@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
+import pandas as pd
+import os
 from typing import Optional
-# import recommender
+import recommender
 # 연결하기. 넣기.
 
 app = FastAPI()
@@ -67,6 +69,7 @@ def parse_address_data(responseData: ResponseData):
     weatherUltraShort = weatherResponse.weatherUltraShort
     weatherShort = weatherResponse.weatherShort
 
+    curMonth = weatherUltraShort[0].fcstDate // 100
     curTime = weatherUltraShort[0].fcstTime
     targetDate = weatherUltraShort[0].fcstDate
     # 7시 이후면 내일 날씨를 추천 해주는 것
@@ -141,6 +144,7 @@ def parse_address_data(responseData: ResponseData):
     wind = []
 
     # 시간에 따라서 분류, 밤 ~ 아침(22~10), 점심(10~17), 그리고 저녁(17~22) 으로 3개의 분류.
+    # 밤 - 아침 (9시부터 14시까지의 기온을 고려.)
     if curTime >= 2200 or curTime < 1000 :
         for weather in targetWeather :
             # 9시 이전은 고려 안함
@@ -155,6 +159,7 @@ def parse_address_data(responseData: ResponseData):
                     rain.append(weather.rainAmount)
                     wind.append(weather.windSpeed)
 
+    # 점심(18시까지를 고려. why? 낮시간대 입는 옷이라 생각, 일교차가 크기에 너무 늦은 시간까지 고려하면 더울것으로 예상)
     elif curTime >= 1000 and curTime < 1700 :
         # 18시까지 보기
         for weather in targetWeather :
@@ -166,7 +171,7 @@ def parse_address_data(responseData: ResponseData):
                 rain.append(weather.rainAmount)
                 wind.append(weather.windSpeed)
 
-    # 저녁날씨 옷 추천임.
+    # 저녁날씨 옷 추천임. 나머지 모두 고려.
     else :
         for weather in targetWeather :
             tmp.append(weather.temp * 0.1)
@@ -176,13 +181,35 @@ def parse_address_data(responseData: ResponseData):
 
     # 일단 1안으로 평균 내서 그냥 그값으로 가기.
 
-    avg = [sum(tmp)/len(tmp),sum(humid)/len(humid),sum(rain)/len(rain),sum(wind)/len(wind)]
+    avg = [sum(tmp)/len(tmp),sum(humid)/len(humid),sum(rain)/len(rain),sum(wind)/len(wind) * 0.1, curMonth]
 
+    print(2)
+    tmp = recommender.human_feel_tmp(avg[0], avg[1], avg[3], avg[4])
 
+    answer = recommender.algorithm(tmp, avg[2], user_id, user_df, df)
 
+    return answer
 
+user_id = 1
 
+user_df = pd.read_excel(os.getcwd() +'\\Data\\user.xlsx', engine= 'openpyxl')
+user_df = user_df.drop(columns= 'Unnamed: 0')
 
-    return avg
+user_row = user_df.loc[user_df['user_id'] == user_id]
+sex = user_row['sex']
 
-    # return targetWeather
+male_df = pd.read_excel(os.getcwd() +'\\Data\\dataframe2.xlsx', engine= 'openpyxl')
+male_df = male_df.drop(columns= 'Unnamed: 0')
+male_df['category'] = male_df['category'].astype(str)
+
+female_df = pd.read_excel(os.getcwd() +'\\Data\\dataframe1.xlsx', engine= 'openpyxl')
+female_df = female_df.drop(columns= 'Unnamed: 0')
+female_df['category'] = female_df['category'].astype(str)
+
+if list(sex)[0] == 1 :
+  df = female_df
+else :
+  df = male_df
+
+# 여러번 도는지 확인용
+print(1)

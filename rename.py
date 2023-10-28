@@ -1,6 +1,6 @@
 import os
 
-insta_name = "not.bad_nb"
+insta_name = "this._.sol"
 
 def rename_photos(folder_path):
     # 해당 폴더로 이동
