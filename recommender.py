@@ -26,7 +26,7 @@ def human_feel_tmp(Ta,Rh,V,month) :
 
 
 # 추천 알고리즘 - 5개 추천
-def algorithm(tmp, rain, user_id, user, df) :
+def algorithm(tmp, rain, usercold,userhot,preferences, df) :
   # 추위 민감도에 따른 추천 유형(1에가까우면 추위를 잘견딤!)
   considerCold = {
         1: (2,3,0),
@@ -51,7 +51,6 @@ def algorithm(tmp, rain, user_id, user, df) :
   category =()
   
   # 해당 유저의 정보
-  user_row = user.loc[user['user_id'] == user_id]
 
 
   # 비가 올 경우, 강우량 2.5mm 이하는 -1 , 그 이상은 -2 (얕은비와 일반 비의 차이)
@@ -65,15 +64,17 @@ def algorithm(tmp, rain, user_id, user, df) :
   # 추위민감도를 이용한 추천 분류(18~25는 민감도 고려 x)
   # 더위 민감도
   if tmp >= 25 :
-    category = considerWarm[user_row['warm'].values[0]]
+    category = considerWarm[userhot]
   elif tmp <= 18 :
-    category = considerCold[user_row['cold'].values[0]]
+    category = considerCold[usercold]
   else :
     category = (5,0,0)
   print(tmp)
-  answer = style_filter.recommend_style(tmp,user_id,df,user,category[0],answer)
-  answer = style_filter.recommend_style(tmp + 1,user_id,df,user,category[1],answer)
-  answer = style_filter.recommend_style(tmp - 1,user_id,df,user,category[2],answer)
+  
+  redundant = set()
+  answer,redundant = style_filter.recommend_style(tmp,preferences,df,category[0],answer,redundant)
+  answer,redundant = style_filter.recommend_style(tmp + 1,preferences,df,category[1],answer,redundant)
+  answer,redundant = style_filter.recommend_style(tmp - 1,preferences,df,category[2],answer,redundant)
   
   return answer
 

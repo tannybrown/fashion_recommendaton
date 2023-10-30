@@ -42,21 +42,29 @@ class WeatherAP(BaseModel) :
     pm10Value : int
     pm25Value : int
 
-class WeatherResponse(BaseModel):
+class WeatherInfo(BaseModel):
     weatherUltraShort: List[WeatherUltraShort]
     weatherShort: List[WeatherShort]
     weatherMid: List[WeatherMid]
     weatherAP: List[WeatherAP]
 
+class MemberInfo(BaseModel) :
+    memberIdx : int
+    memberSex : str
+    memberCold : str
+    memberHot : str
+    memberPreferences : str
+
 class ResponseData(BaseModel):
-    weatherResponse: WeatherResponse
+    memberInfo: MemberInfo
+    weatherInfo: WeatherInfo
     version: float
     message: str
 
 
 # uvicorn main:app --reload
-@app.post("/parse_address_data")
-def parse_address_data(responseData: ResponseData):
+@app.post("/recommend")
+def recommend(responseData: ResponseData):
     # 추천 id list
     return_arr = []
 
@@ -65,9 +73,9 @@ def parse_address_data(responseData: ResponseData):
     # 추천할 날짜(recomDate), 0은 오늘 1은 내일
     tomorrow = 0
     targetWeather = []
-    weatherResponse = responseData.weatherResponse
-    weatherUltraShort = weatherResponse.weatherUltraShort
-    weatherShort = weatherResponse.weatherShort
+    weatherInfo = responseData.weatherInfo
+    weatherUltraShort = weatherInfo.weatherUltraShort
+    weatherShort = weatherInfo.weatherShort
 
     curMonth = weatherUltraShort[0].fcstDate // 100
     curTime = weatherUltraShort[0].fcstTime
@@ -186,18 +194,41 @@ def parse_address_data(responseData: ResponseData):
     print(2)
     tmp = recommender.human_feel_tmp(avg[0], avg[1], avg[3], avg[4])
 
-    answer = recommender.algorithm(tmp, avg[2], user_id, user_df, df)
+
+    # user info data parsing
+    userinfo = responseData.memberInfo
+    usersex = sexToInt[userinfo.memberSex]
+    
+    # 덥고 추움
+    usercold = strToInt[userinfo.memberCold]
+    userhot = strToInt[userinfo.memberHot]
+    # 선호스타일
+    userpreferences = userinfo.memberPreferences
+    # 문자열 to int
+    arr = []
+    for preference in userpreferences.split() :
+        arr.append(styleToInt[usersex][preference])
+    preferences = ','.join(arr)
+    
+    if usersex == 1 :
+        df = male_df
+    else :
+        df = female_df
+        
+    answer = recommender.algorithm(tmp, avg[2], usercold,userhot,preferences, df)
 
     return answer
 
-user_id = 1
+# user_id = 1
 
-user_df = pd.read_excel(os.getcwd() +'\\Data\\user.xlsx', engine= 'openpyxl')
-user_df = user_df.drop(columns= 'Unnamed: 0')
+# user_df = pd.read_excel(os.getcwd() +'\\Data\\user.xlsx', engine= 'openpyxl')
+# user_df = user_df.drop(columns= 'Unnamed: 0')
 
-user_row = user_df.loc[user_df['user_id'] == user_id]
-sex = user_row['sex']
-
+# user_row = user_df.loc[user_df['user_id'] == user_id]
+# sex = user_row['sex']
+strToInt = {"매우 그렇지 않다" : 1,'그렇지 않다': 2 ,'보통이다' : 3,'그렇다' : 4,'매우 그렇다' : 5}
+styleToInt = [0,{'캐주얼' : '1','스트릿':'2','미니멀':'3','클래식/오피스룩':'4'},{'캐주얼':'1','큐티러블리':'2','클래식/오피스룩':'3','모던시크':'4','미니멀':'5','키치':'6','스트릿':'7'}]
+sexToInt = {'남성':1,'여성':2}
 male_df = pd.read_excel(os.getcwd() +'\\Data\\dataframe2.xlsx', engine= 'openpyxl')
 male_df = male_df.drop(columns= 'Unnamed: 0')
 male_df['category'] = male_df['category'].astype(str)
@@ -206,10 +237,10 @@ female_df = pd.read_excel(os.getcwd() +'\\Data\\dataframe1.xlsx', engine= 'openp
 female_df = female_df.drop(columns= 'Unnamed: 0')
 female_df['category'] = female_df['category'].astype(str)
 
-if list(sex)[0] == 1 :
-  df = female_df
-else :
-  df = male_df
+# if list(sex)[0] == 1 :
+#   df = female_df
+# else :
+#   df = male_df
 
 # 여러번 도는지 확인용
 print(1)

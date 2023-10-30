@@ -33,13 +33,13 @@ def reverse_scailing(df,col_name) :
         df.loc[index,'reg_' + col_name] = (1-row[col_name]) * (df_max-df_min) + df_min
     return df
 # 유저가 선호하는 스타일의 데이터 필터링 -> 필터링은 위험하니 scoring방식으로 변경
-def recommend_style(tmp,user_id, df, user_df,count,answer):
+def recommend_style(tmp,preferences, df,count,answer,redundant):
     if count == 0 :
-        return answer
+        return answer,redundant
     tmp = round(tmp,1)
 
     # 특정 user_id에 해당하는 유저 스타일 정보 가져오기 -> 스코어 점수를 주기!
-    user_style = user_df[user_df['user_id'] == user_id]['style'].iloc[0]
+    user_style = preferences
     user_style = set(str(user_style).split(","))
 
     # -> 데이터별 스코어 주기, 체감온도와 적정온도 빼기, 정규화 함수 만들기,
@@ -78,24 +78,27 @@ def recommend_style(tmp,user_id, df, user_df,count,answer):
     sorted_df = df.sort_values(by=['total_score', 'tmp_score'],ascending = [False,False])
     print(sorted_df.head(10))
     # print(sorted_df.describe())
+    
     # count만큼 answer에 담기
     for _, row in sorted_df.iterrows():
         
         # break조건
         if count == 0 :
             break
-
+        check = f"{row['아우터']}_{row['상의1']}_{row['상의2']}_{row['하의']}"
+        if check in redundant :
+            continue
 
         # 파일명 만들기
         name = toName(row)
-        
         if name in answer:
             pass
         else :
             answer.append(name)
+            redundant.add(check)
             count -= 1  
 
-    return answer    
+    return answer, redundant 
 
 
 # def tmpMinus(df, tmp,pre) :
