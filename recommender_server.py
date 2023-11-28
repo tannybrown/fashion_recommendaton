@@ -58,8 +58,8 @@ class MemberInfo(BaseModel) :
 class ResponseData(BaseModel):
     memberInfo: MemberInfo
     weatherInfo: WeatherInfo
-    version: float
-    message: str
+#    version: float
+#    message: str
 
 
 # uvicorn main:app --reload
@@ -217,7 +217,9 @@ def recommend(responseData: ResponseData):
         
     answer = recommender.algorithm(tmp, avg[2], usercold,userhot,preferences, df)
 
-    return answer
+    
+
+    return {'fashionStr': answer}
 
 # user_id = 1
 
@@ -227,13 +229,13 @@ def recommend(responseData: ResponseData):
 # user_row = user_df.loc[user_df['user_id'] == user_id]
 # sex = user_row['sex']
 strToInt = {"매우 그렇지 않다" : 1,'그렇지 않다': 2 ,'보통이다' : 3,'그렇다' : 4,'매우 그렇다' : 5}
-styleToInt = [0,{'캐주얼' : '1','스트릿':'2','미니멀':'3','클래식/오피스룩':'4'},{'캐주얼':'1','큐티러블리':'2','클래식/오피스룩':'3','모던시크':'4','미니멀':'5','키치':'6','스트릿':'7'}]
+styleToInt = [0,{'캐주얼' : '1','스트릿':'2','미니멀':'3','클래식/오피스룩':'4'},{'캐주얼':'1','큐티/러블리':'2','클래식/오피스룩':'3','모던시크':'4','미니멀':'5','키치':'6','스트릿':'7'}]
 sexToInt = {'남성':1,'여성':2}
-male_df = pd.read_excel(os.getcwd() +'\\Data\\dataframe2.xlsx', engine= 'openpyxl')
+male_df = pd.read_excel(os.getcwd() +'/Data/dataframe2.xlsx', engine= 'openpyxl')
 male_df = male_df.drop(columns= 'Unnamed: 0')
 male_df['category'] = male_df['category'].astype(str)
 
-female_df = pd.read_excel(os.getcwd() +'\\Data\\dataframe1.xlsx', engine= 'openpyxl')
+female_df = pd.read_excel(os.getcwd() +'/Data/dataframe1.xlsx', engine= 'openpyxl')
 female_df = female_df.drop(columns= 'Unnamed: 0')
 female_df['category'] = female_df['category'].astype(str)
 
